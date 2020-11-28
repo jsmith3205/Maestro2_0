@@ -1,7 +1,7 @@
 provider "nsxt" {
-  host                  = "172.16.11.30"
-  username              = "admin"
-  password              = "ITaaSwins!!SAIC1811"
+  host                  = var.nsx_manager
+  username              = var.username
+  password              = var.password
   allow_unverified_ssl  = true
   max_retries           = 10
   retry_min_delay       = 500
@@ -42,25 +42,25 @@ resource "nsxt_policy_dhcp_server" "t_dhcp" {
   display_name = var.dhcp_server[0].name
   description = var.dhcp_server[0].description
   edge_cluster_path = data.nsxt_policy_edge_cluster.edge_cluster.path
-  server_addresses = ["10.1.1.2/24"]
+  server_addresses = var.dhcp_server.server_address
 }
 
 
 # Create Tenant Tier-0
 resource "nsxt_policy_tier0_gateway" "t_t0" {
-  display_name          = "TF_Tier0"
-  description           = "Tenant Tier-0 provisioned by Terraform"
-  failover_mode         = "NON_PREEMPTIVE"
-  default_rule_logging  = false
-  enable_firewall       = false
-  force_whitelisting    = true
-  ha_mode               = "ACTIVE_STANDBY"
+  display_name          = var.t_t0.name
+  description           = var.t_t0.description
+  failover_mode         = var.t_t0.failover_mode
+  default_rule_logging  = var.t_t0.default_rule_logging
+  enable_firewall       = var.t_t0.enable_firewall
+  force_whitelisting    = var.t_t0.force_whitelisting
+  ha_mode               = var.t_t0.ha_mode
   edge_cluster_path     = data.nsxt_policy_edge_cluster.edge_cluster.path
 
   bgp_config {
-    ecmp                = false
-    local_as_num        = "65082"
-    multipath_relax     = false
+    ecmp                = var.t_t0.bgp_config.ecmp
+    local_as_num        = var.t_t0.bgp_config.local_as_num
+    multipath_relax     = var.t_t0.bgp_config.multipath_relax
   }
   # add tags later
 
@@ -76,7 +76,7 @@ resource "nsxt_policy_tier0_gateway_interface" "t_t0_int1" {
   segment_path            = var.t_t0[0].interfaces[0].seg_path
   subnets                 = var.t_t0[0].interfaces[0].subnets
   mtu                     = var.t_t0[0].interfaces[0].mtu
-  edge_node_path          = data.nsxt_policy_edge_node.node2.path
+  edge_node_path          = data.nsxt_policy_edge_node.node1.path
 }
 
 resource "nsxt_policy_tier0_gateway_interface" "t_t0_int2" {
@@ -92,32 +92,32 @@ resource "nsxt_policy_tier0_gateway_interface" "t_t0_int2" {
 
 # Create Tenant Tier-1s
 resource "nsxt_policy_tier1_gateway" "t1_prod" {
-  display_name              = "TF_T1_prod"
-  description               = "Tier1 provisioned by Terraform"
+  display_name              = var.t_t1[0].name
+  description               = var.t_t1[0].description
   edge_cluster_path         = data.nsxt_policy_edge_cluster.edge_cluster.path
   dhcp_config_path          = nsxt_policy_dhcp_server.t_dhcp.path
-  failover_mode             = "PREEMPTIVE"
-  default_rule_logging      = "false"
-  enable_firewall           = "true"
-  enable_standby_relocation = "false"
-  force_whitelisting        = "false"
+  failover_mode             = var.t_t1[0].failover_mode
+  default_rule_logging      = var.t_t1[0].default_rule_logging
+  enable_firewall           = var.t_t1[0].enable_firewall
+  enable_standby_relocation = var.t_t1[0].enable_standby_relocation
+  force_whitelisting        = var.t_t1[0].force_whitelisting
   tier0_path                = nsxt_policy_tier0_gateway.t_t0.path
-  route_advertisement_types = ["TIER1_NAT"]
+  route_advertisement_types = var.t_t1[0].route_advertisement_types
   pool_allocation           = "ROUTING"
 }
 
 resource "nsxt_policy_tier1_gateway" "t1_dev" {
-  display_name              = "TF_T1_dev"
-  description               = "Tier1 provisioned by Terraform"
+  display_name              = var.t_t1[1].name
+  description               = var.t_t1[1].description
   edge_cluster_path         = data.nsxt_policy_edge_cluster.edge_cluster.path
   dhcp_config_path          = nsxt_policy_dhcp_server.t_dhcp.path
-  failover_mode             = "PREEMPTIVE"
-  default_rule_logging      = "false"
-  enable_firewall           = "true"
-  enable_standby_relocation = "false"
-  force_whitelisting        = "false"
+  failover_mode             = var.t_t1[1].failover_mode
+  default_rule_logging      = var.t_t1[0].default_rule_logging
+  enable_firewall           = var.t_t1[0].enable_firewall
+  enable_standby_relocation = var.t_t1[0].enable_standby_relocation
+  force_whitelisting        = var.t_t1[0].force_whitelisting
   tier0_path                = nsxt_policy_tier0_gateway.t_t0.path
-  route_advertisement_types = ["TIER1_NAT"]
+  route_advertisement_types = var.t_t1[1].route_advertisement_types
   pool_allocation           = "ROUTING"
 }
 
@@ -126,14 +126,14 @@ resource "nsxt_policy_segment" "prod" {
   display_name        = var.segments[0].name
   description         = var.segments[0].description
   transport_zone_path = data.nsxt_policy_transport_zone.overlay_tz.path
-  connectivity_path = nsxt_policy_tier1_gateway.t1_prod.path
+  connectivity_path   = nsxt_policy_tier1_gateway.t1_prod.path
 
   subnet {
-    cidr        = var.segments[0].subnet
-    dhcp_ranges = ["192.168.162.32-192.168.162.254"]
+    cidr              = var.segments[0].subnet
+    dhcp_ranges       = var.segments[0].dhcp_range
 
     dhcp_v4_config {
-      server_address = "192.168.162.5/24"
+      server_address  = var.segments[0].server_address
     }  
   }
 
@@ -147,20 +147,20 @@ resource "nsxt_policy_segment" "dev" {
   display_name        = var.segments[1].name
   description         = var.segments[1].description
   transport_zone_path = data.nsxt_policy_transport_zone.overlay_tz.path
-  connectivity_path = nsxt_policy_tier1_gateway.t1_dev.path
+  connectivity_path   = nsxt_policy_tier1_gateway.t1_dev.path
 
   subnet {
-    cidr        = var.segments[1].subnet
-    dhcp_ranges = ["192.168.163.32-192.168.163.254"]
+    cidr              = var.segments[1].subnet
+    dhcp_ranges       = var.segments[1].dhcp_range
 
     dhcp_v4_config {
-      server_address = "192.168.163.5/24"
-    }
+      server_address  = var.segments[1].server_address
+    }  
   }
 
   tag {
     scope = "tier"
-    tag   = "web"
+    tag   = "dev"
   }
 }
 

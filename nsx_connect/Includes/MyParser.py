@@ -24,5 +24,5 @@ def myJSONParser(data,output=''):
                 print(output + "[" + str(k) + "] :{===> " + str(data[k]))
         output = ''
     else:
-        print(output + " :===> " + str(data))
+        print(str(data))
         output = ''

@@ -21,7 +21,7 @@ import time
 
 from Includes.MyParser import myJSONParser as mp
 import Includes.db as db
-
+from buildTFVars import buildTFVars as btf
 
 ################################################################################
 ##   API controller for NSX-T
@@ -131,6 +131,7 @@ def getTier0(man,auth=None,objectId=None,fileName=None):
     mp(response)
     return (response)
 
+
 def getTier1(man,auth=None,objectId=None,fileName=None):
     '''
         Description:
@@ -208,6 +209,45 @@ def getEdgeCluster(man,auth=None,objectId=None,fileName=None):
     }
 
     response = requests.request("GET", url, headers=headers, data=payload, verify=False).json()
+
+    mp(response)
+    return (response)
+
+def getEdgeClusterPath(man,auth=None,objectId=None,fileName=None):
+    '''
+        Description:
+            This Function returns the configuration for all Edge Clusters.  Provide an objectId for
+            specific Edge Cluster configuration
+        Required arguments:
+            man => string; NSX-T manager IP (Cluster IP preferred)
+        Optional argumnets:
+            objectId => string; T0 Logical Router ID for
+        Future improvements:
+            TBD
+        '''
+    if objectId==None:
+        url = "https://"+man+"/policy/api/v1/infra/sites/default/enforcement-points/default/edge-clusters/"
+    else:
+        url = "https://"+man+"/policy/api/v1/infra/sites/default/enforcement-points/default/edge-clusters/" + objectId
+    print(url)
+    payload = {}
+    headers = {
+        'Authorization': auth
+    }
+    
+    cont = False
+    while cont == False:
+        response = requests.request("GET", url, headers=headers, data=payload, verify=False).json()
+        if 'httpStatus' in response.keys():
+            t = time.time()
+            idx = 0
+            while (time.time() < t + 15):
+                print("                 ",end='\r')
+                print(animation[idx % len(animation)], end='\r')
+                idx+=1
+                time.sleep(1)
+        else:
+            cont = True
 
     mp(response)
     return (response)
@@ -310,7 +350,7 @@ def getEdgeStatus(edged_id,auth):
 
     response = requests.request("GET", url, headers=headers, data=payload, verify=False).json()
 
-    mp(response)
+    #mp(response)
     return (response)
 
 def createLS(man, payload, auth=None, objectId=None):
@@ -866,7 +906,7 @@ def buildEdge(tc,mode='', ip_addr='', gw='', inst='' ):
                 ]
             },
             "resource_type": "TransportNode",
-            "display_name": tc+"-sdn-edge0"+inst
+            "display_name": "okr01-c01-"+tc+"-0"+inst
         }
     return(data)
 
@@ -900,7 +940,7 @@ def buildEdgeCluster(tc: str,edge_id1: str,edge_id2: str,inst: str):
           ],
           "member_node_type": "EDGE_NODE",
           "resource_type": "EdgeCluster",
-          "display_name": tc+"-tenant-edcl0"+inst,
+          "display_name": "okr01-c01-"+tc+"-0"+inst,
           "description": tc+" Edge Cluster"
         }
     return(data)
@@ -1082,15 +1122,19 @@ if __name__ == "__main__":
     to_t = time.time()
     st_t = time.time()
     urllib3.disable_warnings(InsecureRequestWarning)
+    data = {}
+    run = True
     #uname = input('Username:  ')
     #passw = input('Password:  ')
     #auth_nsx = nsx('admin', 'ITaaSwins!!SAIC1811')
     auth_nsx = 'Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ=='
     auth_vc = 'Basic YWRtaW5pc3RyYXRvckB2c3BoZXJlLmxvY2FsOlZNd2FyZTEh'
-  
+    
     man = '172.16.11.30'
     vman = '172.16.11.64'
-
+    nuname = 'admin'
+    npass = 'ITaaSwins!!SAIC1811'
+    data.update({'conn':{'nman':man,'vman':vman,'nauth':auth_nsx,'vauth':auth_vc,'nu':nuname,'np':npass}})
     animation = [".","..","...","....",".....","....","...","..","."]
     idx = 0
     # vcookie = vapi.getAuth(vman, auth_vc)
@@ -1145,7 +1189,9 @@ if __name__ == "__main__":
         print("nm => " + nm)
         print("tc => " + tc)
 
-        run = False
+        meta = {'meta':{'tc':tc}}
+        data.update(meta)
+
  #       native_mode = True if native in ['Y','Yes',"YES","yes"]
  #       native_mode = False if native in ['N', 'No', "NO", "no"]
  #       return if native in ['Q','QUIT','Quit','quit']
@@ -1171,35 +1217,52 @@ if __name__ == "__main__":
 
     pri_ips1 = db.getAddresses('','192.168.164.0')
     print(pri_ips1)
-    db.updAddresses(tc, pri_ips1[0][0])
+    if run:
+        db.updAddresses(tc, pri_ips1[0][0])
     print("Tenant T0 Transit IP 1:  "+pri_ips1[0][0])
+    data.update({'ip':{'tran1':pri_ips1[0][0]}})
 
     pri_ips2 = db.getAddresses('','192.168.165.0')
-    db.updAddresses(tc, pri_ips2[0][0])
+    if run:
+        db.updAddresses(tc, pri_ips2[0][0])
     print("Tenant T0 Transit IP 1:  "+pri_ips2[0][0])
+    data['ip'].update({'tran2':pri_ips2[0][0]})
 
     pub_net1 = db.getSubnets(None, None, 'pu')
     print("Tenant T0 Public Network #1:  "+pub_net1)
-    db.updSubnets(tc, pub_net1.split("/")[0])
+    if run:
+        db.updSubnets(tc, pub_net1.split("/")[0])
+    data['ip'].update({"nat1":pub_net1})
     pub_ips = db.getHostIP(pub_net1)
+    print("What is this:  "+str(pub_ips))
+    
+    data.update({"segments":{"up1":"okr01-c01-tenant-uplinks","up2":"okr01-c01-tenant-uplink02"}})
+
     db.inAddresses(pub_ips, pub_net1.split('/')[1], pub_net1.split('/')[0], tc)
     nat_ip = db.getAddresses(tc,pub_net1.split('/')[0])
-    db.updAddresses(tc,nat_ip[0][0],'nat')
-    print(nat_ip)
+    if run:
+        db.updAddresses(tc,nat_ip[0][0],'nat')
+    print("Tenant T0 Outbound NAT #1:  "+str(nat_ip))
+    
 
     proBGPAS = 65000
     tenBGPAS = db.getBGPAS()
-    db.updBGPAS(tc,tenBGPAS)
+    if run:
+        db.updBGPAS(tc,tenBGPAS)
+    print("Tenant BGP AS:  "+tenBGPAS)
+    data['ip'].update({'bgpas':tenBGPAS})
 
     edge1_ip = db.getAddresses('sddc','172.16.31.0')
-    db.updAddresses(tc, edge1_ip[0][0])
+    if run:
+        db.updAddresses(tc, edge1_ip[0][0])
     print("Edge 1 MGMT IP:  "+edge1_ip[0][0])
 
     edge2_ip = db.getAddresses('sddc','172.16.31.0')
-    db.updAddresses(tc, edge2_ip[0][0])
+    if run:
+        db.updAddresses(tc, edge2_ip[0][0])
     print("Edge 2 MGMT IP:  "+edge2_ip[0][0])
 
-    print(db.getSubnets(tc))
+    #print("Tenant Subnets:  "+str(db.getSubnets(tc)))
 
     if(native_mode):
         print('**********************************************************')
@@ -1222,7 +1285,12 @@ if __name__ == "__main__":
         pro_neigh2 = confBGPNeigh(man, json.dumps(pro_neigh2), 'tier-0s', 'okr01-c01-prov01',
                                 'default',auth='Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ==', objectId=pro_neigh2['id'])
 
-    
+    # print('**********************************************************')
+    # print("Tenant -  T0 Uplink Segments")
+    # print('**********************************************************')
+    # upseg01 = getSegments(man,auth=auth_nsx,objectId=None,fileName=None)
+    # upseg01 = getSegments(man,auth=auth_nsx,objectId=None,fileName=None)
+
     print('**********************************************************')
     print("Tenant -  Edge 1 Configuration")
     print('**********************************************************')
@@ -1233,7 +1301,7 @@ if __name__ == "__main__":
     
     if run:
         t_edge1 = confTransportNode(man, json.dumps(t_edge1), auth='Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ==', objectId=None)
-
+    data.update({'edge1':t_edge1})
     print('**********************************************************')
     print("Tenant -  Edge 2 Configuration")
     print('**********************************************************')
@@ -1243,24 +1311,51 @@ if __name__ == "__main__":
     print(json.dumps(t_edge2))
     if run:
         t_edge2 = confTransportNode(man, json.dumps(t_edge2), auth='Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ==', objectId=None)
-
+    data.update({'edge2':t_edge2})
     if run:
         print('**********************************************************')
-        print("Tenant - Edge State")
+        print("Tenant Edge Deploying, this may take a while")
         print('**********************************************************')
         t_edge1_state = getEdgeStatus(t_edge1['id'],auth_nsx)
         t_edge2_state = getEdgeStatus(t_edge2['id'],auth_nsx)
+        e1_state = ["",t_edge1_state['node_deployment_state']['state']]
+        e2_state = ["",t_edge2_state['node_deployment_state']['state']]
+        bt = time.time()
 
         while (t_edge1_state['state'] != 'success' or t_edge1_state['state'] == 'pending' or t_edge1_state['state'] == 'failed') \
                 or (t_edge2_state['state'] != 'success' or t_edge2_state['state'] == 'pending' or t_edge2_state['state'] == 'failed'):
+            if e1_state[0] != e1_state[1]:
+                if e1_state[0] != '':
+                    print("Node 1 {} completed".format(e1_state[0]))
+                print("Node 1 deployment state is: {}".format(e1_state[1]))
+                e1_state[0] = e1_state[1]
+
+            if e2_state[0] != e2_state[1]:
+                if e2_state[0] != '':
+                    print("Node 2 {} completed".format(e2_state[0]))
+                print("Node 2 deployment state is: {}".format(e2_state[1]))
+                e2_state[0] = e2_state[1]
+
             t_edge1_state = getEdgeStatus(t_edge1['id'],auth_nsx)
             t_edge2_state = getEdgeStatus(t_edge2['id'],auth_nsx)
+            e1_state[1] = t_edge1_state['node_deployment_state']['state']
+            e2_state[1] = t_edge2_state['node_deployment_state']['state']
+            
+            t = time.time()
+            idx = 0
+            if e1_state[0] != "NODE_READY" and e2_state[0] != "NODE_READY":
+                while (time.time() < t + 15):
+                    print("                 ",end='\r')
+                    print(animation[idx % len(animation)], end='\r')
+                    idx+=1
+                    time.sleep(1)
 
-            print(animation[idx % len(animation)], end='\n\r')
-            time.sleep(30)
-            idx+=1
+        et = time.time()
+        rt = et - bt
+        print('{0:02.0f}:{1:02.0f}'.format(*divmod(rt * 60, 60)))
+        print("Took {} to deploy these VMs".format(rt))
 
-        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1!')
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         print(t_edge1_state['state'])
         print(t_edge2_state['state'])
         print('**********************************************************')
@@ -1271,7 +1366,17 @@ if __name__ == "__main__":
         print("----------------------")
         print(json.dumps(t_edcl))
         t_edcl = confEdgeCluster(man, json.dumps(t_edcl), auth=auth_nsx, objectId=None)
-
+        
+        print('**********************************************************')
+        print("Tenant - Get Edge Cluster Path")
+        print('**********************************************************')
+        t_edcl_path = getEdgeClusterPath(man,auth=auth_nsx,objectId=t_edcl['id'])
+        mp(t_edcl_path)
+        print("----------------------")
+        print(json.dumps(t_edcl_path))
+        t_edcl.update({'edcl_path':t_edcl_path['path']})
+        data.update({'edcl':t_edcl})
+    
     if (native_mode):
         print('**********************************************************')
         print("Tenant T0 - LR Configuration")
@@ -1465,6 +1570,13 @@ if __name__ == "__main__":
     en_t = time.time()
     to_t = en_t - st_t
     x=2
+    print("**********************************************")
+    print("Data to be passed to buildTFVars:  \n"+str(data))
+    print("The size of this data is:  "+str(sys.getsizeof(data))+"B")
+    mp(data)
+    if run:
+        tfvar = btf(data)
+    mp(btf(data))
     print ("This script took " + str(to_t) + " seconds to run!")
 else:
     print("Imported by " + __name__)

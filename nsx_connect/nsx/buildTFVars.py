@@ -1,42 +1,48 @@
-def buildTFVars(man='',user='',my_pass='',ov_tz='',vl_tz='',en1='',en2='',ec='',):
-    build = 
-    build = "# Variables"
+#!/usr/bin/python3
 
-    build +="# NSX Manager - Be sure to change based on your environment"
-    build +='variable "nsx_manager" {'
-    build +='    default = "'+172.16.11.30+'"'
-    build +="}"
 
-    build+="# Username & Password for NSX-T Manager"
-    build+='variable "username" {'
-    build+='    default = "'+admin+'"'
-    build+='}'
+def buildTFVars(data):
+    build = "# Variables\n\n"
 
-    build+='variable "password" {'
-    build+='    default = "'+my_pass+'"'
-    build+='}'
+    build +="# NSX Manager - Be sure to change based on your environment\n"
+    build +='variable "nsx_manager" {\n'
+    build +='    default = "'+data['conn']['nman']+'"\n'
+    build +="}\n\n"
 
-    build+='# Transport Zones'
-    build+='variable "overlay_tz" {'
-    build+='    default = "'+comp-overlay-tz+'"'
-    build+='}'
+    build+="# Username & Password for NSX-T Manager\n"
+    build+='variable "username" {\n'
+    build+='    default = "'+data['conn']['nu']+'"\n'
+    build+='}\n\n'
 
-    build+='variable "vlan_tz" {'
-    build+='    default = "'+comp-vlan-tz+'"'
-    build+='}'
+    build+='variable "password" {\n'
+    build+='    default = "'+data['conn']['np']+'"\n'
+    build+='}\n\n'
 
-    build+='# Edge information used for logical routing'
-    build+='variable "edge_node1" {'
-    build+='    default = "'+TF-TEST01-sdn-edge01+'"' # this will need to be the json display_name
-    build+='}'
+    # Need to update code to automatically finde this information
+    build+='# Transport Zones\n'
+    build+='variable "overlay_tz" {\n'
+    # build+='    default = "'+comp-overlay-tz+'"\n'
+    build+='    default = "comp-overlay-tz"\n'
+    build+='}\n\n'
 
-    build+='variable "edge_node2" {'
-    build+='    default = "'+TF-TEST01-sdn-edge02+'"' # this will need to be the json display_name
-    build+=}
+    # Need to update code to automatically finde this information
+    build+='variable "vlan_tz" {\n'
+    # build+='    default = "'+comp-vlan-tz+'"\n'
+    build+='    default = "comp-vlan-tz"\n'
+    build+='}\n\n'
 
-    build+='variable "edge_cluster" {'
-    build+='    default = "'+TF-TEST01-tenant-edcl01+'"' # this will need to change to the json display_name
-    build+='}'
+    build+='# Edge information used for logical routing\n'
+    build+='variable "edge_node1" {\n'
+    build+='    default = "'+data['edge1']['display_name']+'"\n'
+    build+='}\n\n'
+
+    build+='variable "edge_node2" {\n'
+    build+='    default = "'+data['edge2']['display_name']+'"\n'
+    build+='}\n\n'
+
+    build+='variable "edge_cluster" {\n'
+    build+='    default = "'+data['edcl']['display_name']+'"\n'
+    build+='}\n\n'
 
     build+='''variable "t_t0" {
         type                        = list(object({
@@ -58,46 +64,45 @@ def buildTFVars(man='',user='',my_pass='',ov_tz='',vl_tz='',en1='',en2='',ec='',
                 name                = string
                 description         = string
                 int_type            = string
-                gwy_path            = string
                 seg_path            = string
                 subnets             = list(string)
                 mtu                 = number
             }))
-        }))'''
+        }))\n'''
 
-    build+='    default = [{'
-    build+='        name                  = '"+TF_Tier0+'"'
-    build+='        description           = "Tenant Tier-0 provisioned by Terraform"'
-    build+='        failover_mode         = "NON_PREEMPTIVE"'
-    build+='        default_rule_logging  = false'
-    build+='        enable_firewall       = false'
-    build+='        force_whitelisting    = true'
-    build+='        ha_mode               = "ACTIVE_STANDBY"'
-    build+='        edge_cluster_path     = "'+ec+''"'
-    build+='        bgp_config            = {'
-    build+='            ecmp              = false'
-    build+='            local_as_num      = "'+65065+'"'
-    build+='            multipath_relax   = false'
-    build+='        }'
-    build+='        interfaces            = [{'
-    build+='            name              = "'+to-provider-01+'"'
-    build+='            description       = "Tenant T0 interface 1 provisioned by Terraform"'
-    build+='            int_type          = "EXTERNAL"'
-    build+='            gwy_path          = "'+gwy_path+'"'
-    build+='            seg_path          = "'+/infra/segments/okr01-c01-tenant-uplinks+'"'
-    build+='            subnets           = '+["192.168.164.23/24"]  # This will become the pri_ips1[0][0]
-    build+='            mtu               = 1500'
-    build+='        },{'
-    build+='            name              = "to-provider-02"'
-    build+='            description       = "Tenant T0 interface 2 provisioned by Terraform"'
-    build+='            int_type          = "EXTERNAL"'
-    build+='            gwy_path          = "'+gwy_path+'"'
-    build+='            seg_path          = "'+/infra/segments/okr01-c01-tenant-uplink02+'"'
-    build+='            subnets           = '+["192.168.165.23/24"]  # This will become the pri_ips2[0][0]
-    build+='            mtu               = 1500'
-    build+='        }]'
-    build+='    }]'
-    build+='}'
+    build+='    default = [{\n'
+    build+='        name                  = "'+data['meta']['tc']+'TF_Tier0"\n'
+    build+='        description           = "'+data['meta']['tc']+'Tier-0 provisioned by Terraform"\n'
+    build+='        failover_mode         = "NON_PREEMPTIVE"\n'
+    build+='        default_rule_logging  = false\n'
+    build+='        enable_firewall       = false\n'
+    build+='        force_whitelisting    = true\n'
+    build+='        ha_mode               = "ACTIVE_STANDBY"\n'
+    build+='        edge_cluster_path     = "'+data['edcl']['edcl_path']+'"\n'
+    build+='        bgp_config            = {\n'
+    build+='            ecmp              = false\n'
+    build+='            local_as_num      = "'+data['ip']['bgpas']+'"\n'
+    build+='            multipath_relax   = false\n'
+    build+='        }\n'
+    build+='        interfaces            = [{\n'
+    build+='            name              = "to-provider-01"\n'
+    build+='            description       = "'+data['meta']['tc']+' T0 interface 1 provisioned by Terraform"\n'
+    build+='            int_type          = "EXTERNAL"\n'
+    # build+='            gwy_path          = "'+gwy_path+'"\n'
+    build+='            seg_path          = "/infra/segments/'+data['segments']['up1']+'"\n'
+    build+='            subnets           = ["'+data['ip']['tran1']+'"]\n'  # This will become the pri_ips1[0][0]
+    build+='            mtu               = 1500\n'
+    build+='        },{\n'
+    build+='            name              = "to-provider-02"\n'
+    build+='            description       = "'+data['meta']['tc']+' interface 2 provisioned by Terraform"\n'
+    build+='            int_type          = "EXTERNAL"\n'
+    # build+='            gwy_path          = "'+gwy_path+'"\n'
+    build+='            seg_path          = "/infra/segments/'+data['segments']['up2']+'"\n'
+    build+='            subnets           = ["'+data['ip']['tran2']+'"]\n'  # This will become the pri_ips2[0][0]
+    build+='            mtu               = 1500\n'
+    build+='        }]\n'
+    build+='    }]\n'
+    build+='}\n\n'
 
     build+='''variable "t_t1" {
         type                            = list(object({
@@ -108,58 +113,71 @@ def buildTFVars(man='',user='',my_pass='',ov_tz='',vl_tz='',en1='',en2='',ec='',
             enable_firewall             = bool
             force_whitelisting          = bool
             edge_cluster_path           = string
-            dhcp_config_path            = string
             enable_standby_relocation   = string
-            tier0_path                  = string
             route_advertisement_types   = list(string)
             pool_allocation             = string
-        }))'''
+        }))\n\n'''
 
-    build+='    default = [{'
-    build+='        name              = "'+TF_T1_prod+'"'
-    build+='        description               = "Tier1 provisioned by Terraform"'
-    build+='        edge_cluster_path         = "'+ec_path+'"'
-    build+='        dhcp_config_path          = "'+dhcp_path+'"'
-    build+='        failover_mode             = "'+PREEMPTIVE+'"'
-    build+='        default_rule_logging      = false'
-    build+='        enable_firewall           = true'
-    build+='        enable_standby_relocation = false'
-    build+='        force_whitelisting        = false'
-    build+='        tier0_path                = "'+t0_path+'"'
-    build+='        route_advertisement_types = ["TIER1_CONNECTED"]'
-    build+='        pool_allocation           = "ROUTING"'
-    build+='    }]'
-    build+='}'
+    build+='    default = [{\n'
+    build+='        name              = "okr01-c01-'+data['meta']['tc']+'-t1-prod"\n'
+    build+='        description               = "'+data['meta']['tc']+' Tier1 provisioned by Terraform"\n'
+    build+='        edge_cluster_path         = "'+data['edcl']['edcl_path']+'"\n'
+    # build+='        dhcp_config_path          = "'+dhcp_path+'\n"'
+    build+='        failover_mode             = "PREEMPTIVE"\n'
+    build+='        default_rule_logging      = false\n'
+    build+='        enable_firewall           = true\n'
+    build+='        enable_standby_relocation = false\n'
+    build+='        force_whitelisting        = false\n'
+ #   build+='        tier0_path                = "'+t0_path+'\n"'
+    build+='        route_advertisement_types = ["TIER1_CONNECTED"]\n'
+    build+='        pool_allocation           = "ROUTING"\n'
+    build+='        },{\n'
+    build+='        name              = "okr01-c01-'+data['meta']['tc']+'-t1-dev"\n'
+    build+='        description               = "'+data['meta']['tc']+' Tier1 provisioned by Terraform"\n'
+    build+='        edge_cluster_path         = "'+data['edcl']['edcl_path']+'"\n'
+    # build+='        dhcp_config_path          = "'+dhcp_path+'"\n'
+    build+='        failover_mode             = "PREEMPTIVE"\n'
+    build+='        default_rule_logging      = false\n'
+    build+='        enable_firewall           = true\n'
+    build+='        enable_standby_relocation = false\n'
+    build+='        force_whitelisting        = false\n'
+ #   build+='        tier0_path                = "'+t0_path+'\n"'
+    build+='        route_advertisement_types = ["TIER1_CONNECTED"]\n'
+    build+='        pool_allocation           = "ROUTING"\n'
+    build+='    }]\n'
+    build+='}\n'
 
     build+='''# Segment Names
     variable "segments" {
         type = list(object({
             name = string
             description = string
-            subnet = string
-    }))'''
+            server_address = string
+            dhcp_range = list(string)
+    }))\n'''
 
-    build+='default = [{'
-    build+='    name = "'+tf-test-production+'"'
-    build+='    description = "Test production segment deployment using Terraform"'
-    build+='    subnet = "'+192.168.162.1/24+'"'
-    build+='},{'
-    build+='    name = "'+tf-test-development+'"'
-    build+='    description = "Test production segment deployment using Terraform"'
-    build+='    subnet = "'+192.168.163.1/24+'"'
-    build+='}]'
-    build+='}'
+    build+='    default = [{\n'
+    build+='    name = "okr01-c01-'+data['meta']['tc']+'seg-prod"\n'
+    build+='    description = "'+data['meta']['tc'].capitalize()+' production segment deployment using Terraform"\n'
+    build+='    server_address = "192.168.162.5/24"\n'
+    build+='    dhcp_range = ["192.168.165.32-192.168.165.254"]\n'
+    build+='},{\n'
+    build+='    name = "okr01-c01-'+data['meta']['tc']+'seg-dev"\n'
+    build+='    description = "'+data['meta']['tc'].capitalize()+' production segment deployment using Terraform"\n'
+    build+='    server_address = "192.168.162.5/24"\n'
+    build+='    dhcp_range = ["192.168.165.32-192.168.165.254"]\n'
+    build+='}]\n'
+    build+='}\n'
     build+='''variable "dhcp_server" {
-    type = list(object({
-        name = string
-        description = string
-        server_address = list(string)
-    }))'''
-    build+=default='[{'
-    build+='    name = "'+tf-test-dhcpd+'"'
-    build+='    description = "Test DHCP server deployment using Terraform"'
-    build+='    server_address = '+["10.1.1.2/24"]
-    build+='}]'
-    build+='}'
-    
-}
+            type = list(object({
+            name = string
+            description = string
+            server_address = list(string)
+            }))\n'''
+    build+='    default= [{\n'
+    build+='    name = "okr01-c01-'+data['meta']['tc']+'-dhcpd"\n'
+    build+='    description = "'+data['meta']['tc']+' DHCP server deployment using Terraform"\n'
+    build+='    server_address = ["10.1.1.2/24"]\n'
+    build+='}]\n'
+    build+='}\n'
+    return build
