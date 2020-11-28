@@ -42,25 +42,25 @@ resource "nsxt_policy_dhcp_server" "t_dhcp" {
   display_name = var.dhcp_server[0].name
   description = var.dhcp_server[0].description
   edge_cluster_path = data.nsxt_policy_edge_cluster.edge_cluster.path
-  server_addresses = var.dhcp_server.server_address
+  server_addresses = var.dhcp_server[0].server_address
 }
 
 
 # Create Tenant Tier-0
 resource "nsxt_policy_tier0_gateway" "t_t0" {
-  display_name          = var.t_t0.name
-  description           = var.t_t0.description
-  failover_mode         = var.t_t0.failover_mode
-  default_rule_logging  = var.t_t0.default_rule_logging
-  enable_firewall       = var.t_t0.enable_firewall
-  force_whitelisting    = var.t_t0.force_whitelisting
-  ha_mode               = var.t_t0.ha_mode
+  display_name          = var.t_t0[0].name
+  description           = var.t_t0[0].description
+  failover_mode         = var.t_t0[0].failover_mode
+  default_rule_logging  = var.t_t0[0].default_rule_logging
+  enable_firewall       = var.t_t0[0].enable_firewall
+  force_whitelisting    = var.t_t0[0].force_whitelisting
+  ha_mode               = var.t_t0[0].ha_mode
   edge_cluster_path     = data.nsxt_policy_edge_cluster.edge_cluster.path
 
   bgp_config {
-    ecmp                = var.t_t0.bgp_config.ecmp
-    local_as_num        = var.t_t0.bgp_config.local_as_num
-    multipath_relax     = var.t_t0.bgp_config.multipath_relax
+    ecmp                = var.t_t0[0].bgp_config.ecmp
+    local_as_num        = var.t_t0[0].bgp_config.local_as_num
+    multipath_relax     = var.t_t0[0].bgp_config.multipath_relax
   }
   # add tags later
 

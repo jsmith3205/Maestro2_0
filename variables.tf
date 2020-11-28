@@ -138,17 +138,20 @@ variable "t_t1" {
             description = string
             server_address = string
             dhcp_range = list(string)
+            subnet = string
     }))
     default = [{
     name = "okr01-c01-pytf04seg-prod"
     description = "Test production segment deployment using Terraform"
     server_address = "192.168.162.5/24"
     dhcp_range = ["192.168.162.32-192.168.162.254"]
+    subnet = "192.168.162.1/24"
 },{
     name = "okr01-c01-pytf04seg-dev"
     description = "Test production segment deployment using Terraform"
     server_address = "192.168.163.5/24"
     dhcp_range = ["192.168.163.32-192.168.163.254"]
+    subnet = "192.168.163.1/24"
 }]
 }
 variable "dhcp_server" {
