@@ -21,13 +21,11 @@ def buildTFVars(data):
     # Need to update code to automatically finde this information
     build+='# Transport Zones\n'
     build+='variable "overlay_tz" {\n'
-    # build+='    default = "'+comp-overlay-tz+'"\n'
     build+='    default = "comp-overlay-tz"\n'
     build+='}\n\n'
 
     # Need to update code to automatically finde this information
     build+='variable "vlan_tz" {\n'
-    # build+='    default = "'+comp-vlan-tz+'"\n'
     build+='    default = "comp-vlan-tz"\n'
     build+='}\n\n'
 
@@ -71,8 +69,8 @@ def buildTFVars(data):
         }))\n'''
 
     build+='    default = [{\n'
-    build+='        name                  = "'+data['meta']['tc']+'TF_Tier0"\n'
-    build+='        description           = "'+data['meta']['tc']+'Tier-0 provisioned by Terraform"\n'
+    build+='        name                  = "okr01-c01-'+data['meta']['tc']+'-t0"\n'
+    build+='        description           = "'+data['meta']['tc'].capitalize()+' Tier-0 provisioned by Terraform"\n'
     build+='        failover_mode         = "NON_PREEMPTIVE"\n'
     build+='        default_rule_logging  = false\n'
     build+='        enable_firewall       = false\n'
@@ -86,7 +84,7 @@ def buildTFVars(data):
     build+='        }\n'
     build+='        interfaces            = [{\n'
     build+='            name              = "to-provider-01"\n'
-    build+='            description       = "'+data['meta']['tc']+' T0 interface 1 provisioned by Terraform"\n'
+    build+='            description       = "'+data['meta']['tc'].capitalize()+' T0 interface 1 provisioned by Terraform"\n'
     build+='            int_type          = "EXTERNAL"\n'
     # build+='            gwy_path          = "'+gwy_path+'"\n'
     build+='            seg_path          = "/infra/segments/'+data['segments']['up1']+'"\n'
@@ -94,7 +92,7 @@ def buildTFVars(data):
     build+='            mtu               = 1500\n'
     build+='        },{\n'
     build+='            name              = "to-provider-02"\n'
-    build+='            description       = "'+data['meta']['tc']+' interface 2 provisioned by Terraform"\n'
+    build+='            description       = "'+data['meta']['tc'].capitalize()+' interface 2 provisioned by Terraform"\n'
     build+='            int_type          = "EXTERNAL"\n'
     # build+='            gwy_path          = "'+gwy_path+'"\n'
     build+='            seg_path          = "/infra/segments/'+data['segments']['up2']+'"\n'
@@ -120,7 +118,7 @@ def buildTFVars(data):
 
     build+='    default = [{\n'
     build+='        name              = "okr01-c01-'+data['meta']['tc']+'-t1-prod"\n'
-    build+='        description               = "'+data['meta']['tc']+' Tier1 provisioned by Terraform"\n'
+    build+='        description               = "'+data['meta']['tc'].capitalize()+' Tier1 provisioned by Terraform"\n'
     build+='        edge_cluster_path         = "'+data['edcl']['edcl_path']+'"\n'
     # build+='        dhcp_config_path          = "'+dhcp_path+'\n"'
     build+='        failover_mode             = "PREEMPTIVE"\n'
@@ -133,7 +131,7 @@ def buildTFVars(data):
     build+='        pool_allocation           = "ROUTING"\n'
     build+='        },{\n'
     build+='        name              = "okr01-c01-'+data['meta']['tc']+'-t1-dev"\n'
-    build+='        description               = "'+data['meta']['tc']+' Tier1 provisioned by Terraform"\n'
+    build+='        description               = "'+data['meta']['tc'].capitalize()+' Tier1 provisioned by Terraform"\n'
     build+='        edge_cluster_path         = "'+data['edcl']['edcl_path']+'"\n'
     # build+='        dhcp_config_path          = "'+dhcp_path+'"\n'
     build+='        failover_mode             = "PREEMPTIVE"\n'
@@ -150,22 +148,25 @@ def buildTFVars(data):
     build+='''# Segment Names
     variable "segments" {
         type = list(object({
-            name = string
-            description = string
-            server_address = string
-            dhcp_range = list(string)
+            name            = string
+            description     = string
+            server_address  = string
+            dhcp_range      = list(string)
+            cidr            = string
     }))\n'''
 
-    build+='    default = [{\n'
-    build+='    name = "okr01-c01-'+data['meta']['tc']+'seg-prod"\n'
-    build+='    description = "'+data['meta']['tc'].capitalize()+' production segment deployment using Terraform"\n'
-    build+='    server_address = "192.168.162.5/24"\n'
-    build+='    dhcp_range = ["192.168.165.32-192.168.165.254"]\n'
+    build+='    default         = [{\n'
+    build+='    name            = "okr01-c01-'+data['meta']['tc']+'-seg-prod"\n'
+    build+='    description     = "'+data['meta']['tc'].capitalize()+' production segment deployment using Terraform"\n'
+    build+='    server_address  = "192.168.162.5/24"\n'
+    build+='    dhcp_range      = ["192.168.162.32-192.168.162.254"]\n'
+    build+='    cidr            = ["192.168.162.1/24"]\n'
     build+='},{\n'
-    build+='    name = "okr01-c01-'+data['meta']['tc']+'seg-dev"\n'
-    build+='    description = "'+data['meta']['tc'].capitalize()+' production segment deployment using Terraform"\n'
-    build+='    server_address = "192.168.162.5/24"\n'
-    build+='    dhcp_range = ["192.168.165.32-192.168.165.254"]\n'
+    build+='    name            = "okr01-c01-'+data['meta']['tc']+'-seg-dev"\n'
+    build+='    description     = "'+data['meta']['tc'].capitalize()+' development segment deployment using Terraform"\n'
+    build+='    server_address  = "192.168.163.5/24"\n'
+    build+='    dhcp_range      = ["192.168.163.32-192.168.163.254"]\n'
+    build+='    cidr            = ["192.168.162.1/24"]\n'
     build+='}]\n'
     build+='}\n'
     build+='''variable "dhcp_server" {
@@ -176,7 +177,7 @@ def buildTFVars(data):
             }))\n'''
     build+='    default= [{\n'
     build+='    name = "okr01-c01-'+data['meta']['tc']+'-dhcpd"\n'
-    build+='    description = "'+data['meta']['tc']+' DHCP server deployment using Terraform"\n'
+    build+='    description = "'+data['meta']['tc'].capitalize()+' DHCP server deployment using Terraform"\n'
     build+='    server_address = ["10.1.1.2/24"]\n'
     build+='}]\n'
     build+='}\n'

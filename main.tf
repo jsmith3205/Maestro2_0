@@ -129,7 +129,7 @@ resource "nsxt_policy_segment" "prod" {
   connectivity_path   = nsxt_policy_tier1_gateway.t1_prod.path
 
   subnet {
-    cidr              = var.segments[0].subnet
+    cidr              = var.segments[0].cidr
     dhcp_ranges       = var.segments[0].dhcp_range
 
     dhcp_v4_config {
@@ -150,7 +150,7 @@ resource "nsxt_policy_segment" "dev" {
   connectivity_path   = nsxt_policy_tier1_gateway.t1_dev.path
 
   subnet {
-    cidr              = var.segments[1].subnet
+    cidr              = var.segments[1].cidr
     dhcp_ranges       = var.segments[1].dhcp_range
 
     dhcp_v4_config {

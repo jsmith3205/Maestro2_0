@@ -25,15 +25,15 @@ variable "vlan_tz" {
 
 # Edge information used for logical routing
 variable "edge_node1" {
-    default = "okr01-c01-pytf05-01"
+    default = "okr01-c01-pytf04-01"
 }
 
 variable "edge_node2" {
-    default = "okr01-c01-pytf05-02"
+    default = "okr01-c01-pytf04-02"
 }
 
 variable "edge_cluster" {
-    default = "okr01-c01-pytf05-01"
+    default = "okr01-c01-pytf04-01"
 }
 
 variable "t_t0" {
@@ -62,32 +62,32 @@ variable "t_t0" {
             }))
         }))
     default = [{
-        name                  = "okr01-c01-pytf05-tier0"
-        description           = "pytf05 Tier-0 provisioned by Terraform"
+        name                  = "pytf04TF_Tier0"
+        description           = "pytf04Tier-0 provisioned by Terraform"
         failover_mode         = "NON_PREEMPTIVE"
         default_rule_logging  = false
         enable_firewall       = false
         force_whitelisting    = true
         ha_mode               = "ACTIVE_STANDBY"
-        edge_cluster_path     = "/infra/sites/default/enforcement-points/default/edge-clusters/8fadc339-d705-44d3-bc25-d65d437c88b4"
+        edge_cluster_path     = "/infra/sites/default/enforcement-points/default/edge-clusters/6a12b978-54a8-4c69-9279-b5f77708cbc9"
         bgp_config            = {
             ecmp              = false
-            local_as_num      = "65104"
+            local_as_num      = "65102"
             multipath_relax   = false
         }
         interfaces            = [{
             name              = "to-provider-01"
-            description       = "pytf05 T0 interface 1 provisioned by Terraform"
+            description       = "pytf04 T0 interface 1 provisioned by Terraform"
             int_type          = "EXTERNAL"
             seg_path          = "/infra/segments/okr01-c01-tenant-uplinks"
-            subnets           = ["192.168.164.56/24"]
+            subnets           = ["192.168.164.54/24"]
             mtu               = 1500
         },{
             name              = "to-provider-02"
-            description       = "pytf05 interface 2 provisioned by Terraform"
+            description       = "pytf04 interface 2 provisioned by Terraform"
             int_type          = "EXTERNAL"
             seg_path          = "/infra/segments/okr01-c01-tenant-uplink02"
-            subnets           = ["192.168.165.56/24"]
+            subnets           = ["192.168.165.54/24"]
             mtu               = 1500
         }]
     }]
@@ -108,9 +108,9 @@ variable "t_t1" {
         }))
 
     default = [{
-        name              = "okr01-c01-pytf05-t1-prod"
-        description               = "pytf05 Tier1 provisioned by Terraform"
-        edge_cluster_path         = "/infra/sites/default/enforcement-points/default/edge-clusters/8fadc339-d705-44d3-bc25-d65d437c88b4"
+        name              = "okr01-c01-pytf04-t1-prod"
+        description               = "pytf04 Tier1 provisioned by Terraform"
+        edge_cluster_path         = "/infra/sites/default/enforcement-points/default/edge-clusters/6a12b978-54a8-4c69-9279-b5f77708cbc9"
         failover_mode             = "PREEMPTIVE"
         default_rule_logging      = false
         enable_firewall           = true
@@ -119,9 +119,9 @@ variable "t_t1" {
         route_advertisement_types = ["TIER1_CONNECTED"]
         pool_allocation           = "ROUTING"
         },{
-        name              = "okr01-c01-pytf05-t1-dev"
-        description               = "pytf05 Tier1 provisioned by Terraform"
-        edge_cluster_path         = "/infra/sites/default/enforcement-points/default/edge-clusters/8fadc339-d705-44d3-bc25-d65d437c88b4"
+        name              = "okr01-c01-pytf04-t1-dev"
+        description               = "pytf04 Tier1 provisioned by Terraform"
+        edge_cluster_path         = "/infra/sites/default/enforcement-points/default/edge-clusters/6a12b978-54a8-4c69-9279-b5f77708cbc9"
         failover_mode             = "PREEMPTIVE"
         default_rule_logging      = false
         enable_firewall           = true
@@ -132,29 +132,28 @@ variable "t_t1" {
     }]
 }
 # Segment Names
-variable "segments" {
+    variable "segments" {
         type = list(object({
-            name            = string
-            description     = string
-            server_address  = string
-            dhcp_range      = list(string)
-            cidr            = string
+            name = string
+            description = string
+            server_address = string
+            dhcp_range = list(string)
+            subnet = string
     }))
     default = [{
-        name = "okr01-c01-pytf05seg-prod"
-        description = "Pytf05 production segment deployment using Terraform"
-        cidr = "192.168.162.1/24"
-        server_address = "192.168.162.5/24"
-        dhcp_range = ["192.168.162.32-192.168.162.254"]
-    },{
-        name = "okr01-c01-pytf05seg-dev"
-        description = "Pytf05 production segment deployment using Terraform"
-        cidr = "192.168.163.1/24"
-        server_address = "192.168.163.5/24"
-        dhcp_range = ["192.168.163.32-192.168.163.254"]
-    }]
+    name = "okr01-c01-pytf04seg-prod"
+    description = "Test production segment deployment using Terraform"
+    server_address = "192.168.162.5/24"
+    dhcp_range = ["192.168.162.32-192.168.162.254"]
+    subnet = "192.168.162.1/24"
+},{
+    name = "okr01-c01-pytf04seg-dev"
+    description = "Test production segment deployment using Terraform"
+    server_address = "192.168.163.5/24"
+    dhcp_range = ["192.168.163.32-192.168.163.254"]
+    subnet = "192.168.163.1/24"
+}]
 }
-
 variable "dhcp_server" {
             type = list(object({
             name = string
@@ -162,8 +161,8 @@ variable "dhcp_server" {
             server_address = list(string)
             }))
     default= [{
-        name = "okr01-c01-pytf05-dhcpd"
-        description = "pytf05 DHCP server deployment using Terraform"
-        server_address = ["10.1.1.2/24"]
-    }]
+    name = "okr01-c01-pytf04-dhcpd"
+    description = "pytf04 DHCP server deployment using Terraform"
+    server_address = ["10.1.1.2/24"]
+}]
 }

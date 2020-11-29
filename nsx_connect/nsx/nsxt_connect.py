@@ -1352,7 +1352,7 @@ if __name__ == "__main__":
 
         et = time.time()
         rt = et - bt
-        print('{0:02.0f}:{1:02.0f}'.format(*divmod(rt * 60, 60)))
+        print('{0:02.0f}:{1:02.0f}'.format(*divmod(rt, 60)))
         print("Took {} to deploy these VMs".format(rt))
 
         print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -1577,6 +1577,13 @@ if __name__ == "__main__":
     if run:
         tfvar = btf(data)
     mp(btf(data))
-    print ("This script took " + str(to_t) + " seconds to run!")
+    print("**********************************************")
+    print("Write TF variables data to File")
+    print("**********************************************")
+    f = open(sys.path[0]"variables.tf", "w")
+    f.write(btf(data))
+    f.close()
+
+    print ("This script took " + '{0:02.0f}:{1:02.0f}'.format(*divmod(to_t, 60)) + " seconds to run!")
 else:
     print("Imported by " + __name__)
