@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import sys
 
-print(sys.path)
+# print(sys.path)
 
 #sys.path.append('/Users/jsmith/Documents/GitHub/Maestro2_0/nsx_connect')
 
@@ -9,9 +9,9 @@ print(sys.path)
 
 import os
 import inspect
-print("this file: ",os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
-print("this file: ",os.path.abspath(inspect.getfile(inspect.currentframe())))
-print("this file: ",os.path.dirname(inspect.getfile(inspect.currentframe())))
+# print("this file: ",os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
+# print("this file: ",os.path.abspath(inspect.getfile(inspect.currentframe())))
+# print("this file: ",os.path.dirname(inspect.getfile(inspect.currentframe())))
 
 
 import sqlite3
@@ -26,7 +26,6 @@ cur=None
 conn=None
 
 def db_conn():
-    print("sys.path ==>" + str(sys.path))
     db=""
     if os.path.dirname(inspect.getfile(inspect.currentframe())) != '':
         db = os.path.dirname(inspect.getfile(inspect.currentframe())) + "/ipam.db"

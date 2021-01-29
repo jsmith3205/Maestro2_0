@@ -22,6 +22,7 @@ import time
 from Includes.MyParser import myJSONParser as mp
 import Includes.db as db
 from buildTFVars import buildTFVars as btf
+from Includes.mkdir import mkdir
 
 ################################################################################
 ##   API controller for NSX-T
@@ -225,6 +226,7 @@ def getEdgeClusterPath(man,auth=None,objectId=None,fileName=None):
         Future improvements:
             TBD
         '''
+    # print(test)
     if objectId==None:
         url = "https://"+man+"/policy/api/v1/infra/sites/default/enforcement-points/default/edge-clusters/"
     else:
@@ -242,7 +244,7 @@ def getEdgeClusterPath(man,auth=None,objectId=None,fileName=None):
             t = time.time()
             idx = 0
             while (time.time() < t + 15):
-                print("                 ",end='\r')
+                print("                 ", end='\r')
                 print(animation[idx % len(animation)], end='\r')
                 idx+=1
                 time.sleep(1)
@@ -906,7 +908,7 @@ def buildEdge(tc,mode='', ip_addr='', gw='', inst='' ):
                 ]
             },
             "resource_type": "TransportNode",
-            "display_name": "okr01-c01-"+tc+"-0"+inst
+            "display_name": tc+"-sdn-edge0"+inst
         }
     return(data)
 
@@ -1118,20 +1120,25 @@ def buildDNSServer(tc,enc):
     }
     return(data)
 
+
+
 if __name__ == "__main__":
     to_t = time.time()
     st_t = time.time()
     urllib3.disable_warnings(InsecureRequestWarning)
     data = {}
     run = True
+    test = False
     #uname = input('Username:  ')
     #passw = input('Password:  ')
     #auth_nsx = nsx('admin', 'ITaaSwins!!SAIC1811')
     auth_nsx = 'Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ=='
     auth_vc = 'Basic YWRtaW5pc3RyYXRvckB2c3BoZXJlLmxvY2FsOlZNd2FyZTEh'
     
+    # man = '172.16.11.20'
     man = '172.16.11.30'
-    vman = '172.16.11.64'
+    vman = '172.16.11.62'
+    # vman = '172.16.11.64'
     nuname = 'admin'
     npass = 'ITaaSwins!!SAIC1811'
     data.update({'conn':{'nman':man,'vman':vman,'nauth':auth_nsx,'vauth':auth_vc,'nu':nuname,'np':npass}})
@@ -1202,18 +1209,7 @@ if __name__ == "__main__":
     ## Previously created two additional Logical Segments, but due to the limit of 16 interfaces, this became a less
     ## a less than scalable approach.  The new approach is to create/utilize a /24 network for tenant peering.  This
     ## will allow for up to 253 peers (tenants) per interface x15 available interfaces to downstream peers
-    # pri_net1 = db.getSubnets(None,None,'pr')
-    # print("Tenant T0 Transit Network #1:  "+pri_net1)
-    # db.updSubnets(tc,pri_net1.split("/")[0])
-    # pri_ips1 = db.getHostIP(pri_net1)
-    # print("Host IPs:  "+str(pri_ips1))
-    # db.inAddresses(pri_ips1,pri_net1.split('/')[1],pri_net1.split('/')[0],tc)
-    #
-    # pri_net2 = db.getSubnets(None, None, 'pr')
-    # print("Tenant T0 Transit Network #2:  "+pri_net2)
-    # db.updSubnets(tc, pri_net2.split("/")[0])
-    # pri_ips2 = db.getHostIP(pri_net2)
-    # db.inAddresses(pri_ips2, pri_net2.split('/')[1], pri_net2.split('/')[0], tc)
+
 
     pri_ips1 = db.getAddresses('','192.168.164.0')
     print(pri_ips1)
@@ -1229,21 +1225,45 @@ if __name__ == "__main__":
     data['ip'].update({'tran2':pri_ips2[0][0]})
 
     pub_net1 = db.getSubnets(None, None, 'pu')
-    print("Tenant T0 Public Network #1:  "+pub_net1)
+    print("Tenant T0 Public IP #1:  "+pub_net1)
     if run:
         db.updSubnets(tc, pub_net1.split("/")[0])
-    data['ip'].update({"nat1":pub_net1})
-    pub_ips = db.getHostIP(pub_net1)
-    print("What is this:  "+str(pub_ips))
+    # data['ip'].update({"nat1":pub_net1})
+    pub_ips1 = db.getHostIP(pub_net1)
+    print("NAT Outbound IP:  "+str(pub_ips1))
     
+    # pub_net2 = db.getSubnets(None, None, 'pu')
+    # print("Tenant T0 Public IP #2:  "+pub_net2)
+    # if run:
+    #     db.updSubnets(tc, pub_net2.split("/")[0])
+    # data['ip'].update({"nat2":pub_net2})
+    # pub_ips2 = db.getHostIP(pub_net2)
+    # print("NAT Outbound IP:  "+str(pub_ips2))
+
     data.update({"segments":{"up1":"okr01-c01-tenant-uplinks","up2":"okr01-c01-tenant-uplink02"}})
 
-    db.inAddresses(pub_ips, pub_net1.split('/')[1], pub_net1.split('/')[0], tc)
-    nat_ip = db.getAddresses(tc,pub_net1.split('/')[0])
+    db.inAddresses(pub_ips1, pub_net1.split('/')[1], pub_net1.split('/')[0], tc)
+    nat_ip1 = db.getAddresses(tc,pub_net1.split('/')[0])
+    print("NAT IP 1:  " + nat_ip1[0][0])
     if run:
-        db.updAddresses(tc,nat_ip[0][0],'nat')
-    print("Tenant T0 Outbound NAT #1:  "+str(nat_ip))
+        db.updAddresses(tc,nat_ip1[0][0],'nat')
+    data['ip'].update({"nat1":nat_ip1[0][0]})
     
+    nat_ip2 = db.getAddresses(tc,pub_net1.split('/')[0])
+    print("NAT IP 2:  " + nat_ip2[0][0])    
+    if run:
+        db.updAddresses(tc,nat_ip2[0][0],'nat')
+    data['ip'].update({"nat2":nat_ip2[0][0]})
+
+    nat_ip3 = db.getAddresses(tc,pub_net1.split('/')[0])
+    print("NAT IP 3:  " + nat_ip3[0][0])    
+    if run:
+        db.updAddresses(tc,nat_ip3[0][0],'nat')
+    data['ip'].update({"nat3":nat_ip3[0][0]})
+
+    print("Tenant T0 Outbound NAT #1:  " + nat_ip1[0][0])
+    print("Tenant T0 Outbound NAT #2:  " + nat_ip2[0][0])
+    print("Tenant T0 Outbound NAT #3:  " + nat_ip3[0][0])
 
     proBGPAS = 65000
     tenBGPAS = db.getBGPAS()
@@ -1256,126 +1276,156 @@ if __name__ == "__main__":
     if run:
         db.updAddresses(tc, edge1_ip[0][0])
     print("Edge 1 MGMT IP:  "+edge1_ip[0][0])
+    
 
     edge2_ip = db.getAddresses('sddc','172.16.31.0')
     if run:
         db.updAddresses(tc, edge2_ip[0][0])
     print("Edge 2 MGMT IP:  "+edge2_ip[0][0])
 
+    ## Adding hardcoded LAN IPs for Demonstration
+    ## Will need to fix this once hashed out
+    p_net = '192.168.162.0/24' # Production LAN
+    data['ip'].update({'p_net': p_net})
+
+    d_net = '192.168.163.0/24' # Development LAN
+    data['ip'].update({'d_net': d_net})
+
+    agg_lan_net = '192.168.162.0/23' # Aggregate LAN
+    data['ip'].update({'agg_lan_net': agg_lan_net})
+
+    p_lan_ip1 = "192.168.162.15"  # Bastion Host
+    data['ip'].update({'p_lan_ip1': p_lan_ip1})
+
+    p_lan_ip2 = "192.168.162.10"  # Application/Server
+    data['ip'].update({'p_lan_ip2': p_lan_ip2})
+
+    d_lan_ip1 = "192.168.163.15"  # Bastion Host
+    data['ip'].update({'d_lan_ip3': d_lan_ip1})
+
+    d_lan_ip2 = "192.168.163.10"  # Application/Server
+    data['ip'].update({'d_lan_ip4': d_lan_ip2})
+    
+
+    if man == '172.16.11.20':
+        edge1_ip = '172.16.11.81'
+        edge2_ip = '172.16.11.82'
+
     #print("Tenant Subnets:  "+str(db.getSubnets(tc)))
 
-    if(native_mode):
-        print('**********************************************************')
-        print("Provider T0 - BGP Neighbor Configuration 1")
-        print('**********************************************************')
-        pro_neigh1 = buildBGP(tc, 'neigh', pri_ips1[0][3],pri_ips1[0][0].split('/')[0],tenBGPAS,'1','pro')
-        mp(pro_neigh1)
-        print("----------------------")
-        print(json.dumps(pro_neigh1))
-        pro_neigh1 = confBGPNeigh(man, json.dumps(pro_neigh1), 'tier-0s', 'okr01-c01-prov01',
-                                'default',auth='Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ==', objectId=pro_neigh1['id'])
+    # if(native_mode):
+    print('**********************************************************')
+    print("Provider T0 - BGP Neighbor Configuration 1")
+    print('**********************************************************')
+    pro_neigh1 = buildBGP(tc, 'neigh',pri_ips1[0][3],pri_ips1[0][0].split('/')[0],tenBGPAS,'1','pro')
+    mp(pro_neigh1)
+    print("----------------------")
+    print(json.dumps(pro_neigh1))
+    pro_neigh1 = confBGPNeigh(man, json.dumps(pro_neigh1), 'tier-0s', 'okr01-c01-prov01',
+                            'default',auth='Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ==', objectId=pro_neigh1['id'])
 
-        print('**********************************************************')
-        print("Provider T0 - BGP Neighbor Configuration 2")
-        print('**********************************************************')
-        pro_neigh2 = buildBGP(tc, 'neigh', pri_ips2[0][3],pri_ips2[0][0].split('/')[0],tenBGPAS,'2','pro')
-        mp(pro_neigh2)
-        print("----------------------")
-        print(json.dumps(pro_neigh2))
-        pro_neigh2 = confBGPNeigh(man, json.dumps(pro_neigh2), 'tier-0s', 'okr01-c01-prov01',
-                                'default',auth='Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ==', objectId=pro_neigh2['id'])
+    print('**********************************************************')
+    print("Provider T0 - BGP Neighbor Configuration 2")
+    print('**********************************************************')
+    pro_neigh2 = buildBGP(tc, 'neigh',pri_ips2[0][3],pri_ips2[0][0].split('/')[0],tenBGPAS,'2','pro')
+    mp(pro_neigh2)
+    print("----------------------")
+    print(json.dumps(pro_neigh2))
+    pro_neigh2 = confBGPNeigh(man, json.dumps(pro_neigh2), 'tier-0s', 'okr01-c01-prov01',
+                            'default',auth='Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ==', objectId=pro_neigh2['id'])
 
     # print('**********************************************************')
     # print("Tenant -  T0 Uplink Segments")
     # print('**********************************************************')
     # upseg01 = getSegments(man,auth=auth_nsx,objectId=None,fileName=None)
     # upseg01 = getSegments(man,auth=auth_nsx,objectId=None,fileName=None)
-
-    print('**********************************************************')
-    print("Tenant -  Edge 1 Configuration")
-    print('**********************************************************')
-    t_edge1 = buildEdge(tc, '', edge1_ip[0][0].split('/')[0], edge1_ip[0][3], '1')
-    mp(t_edge1)
-    print("----------------------")
-    print(json.dumps(t_edge1))
-    
-    if run:
-        t_edge1 = confTransportNode(man, json.dumps(t_edge1), auth='Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ==', objectId=None)
-    data.update({'edge1':t_edge1})
-    print('**********************************************************')
-    print("Tenant -  Edge 2 Configuration")
-    print('**********************************************************')
-    t_edge2 = buildEdge(tc, '', edge2_ip[0][0].split('/')[0], edge2_ip[0][3], '2')
-    mp(t_edge2)
-    print("----------------------")
-    print(json.dumps(t_edge2))
-    if run:
-        t_edge2 = confTransportNode(man, json.dumps(t_edge2), auth='Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ==', objectId=None)
-    data.update({'edge2':t_edge2})
-    if run:
+    if not test:
         print('**********************************************************')
-        print("Tenant Edge Deploying, this may take a while")
+        print("Tenant -  Edge 1 Configuration")
         print('**********************************************************')
-        t_edge1_state = getEdgeStatus(t_edge1['id'],auth_nsx)
-        t_edge2_state = getEdgeStatus(t_edge2['id'],auth_nsx)
-        e1_state = ["",t_edge1_state['node_deployment_state']['state']]
-        e2_state = ["",t_edge2_state['node_deployment_state']['state']]
-        bt = time.time()
-
-        while (t_edge1_state['state'] != 'success' or t_edge1_state['state'] == 'pending' or t_edge1_state['state'] == 'failed') \
-                or (t_edge2_state['state'] != 'success' or t_edge2_state['state'] == 'pending' or t_edge2_state['state'] == 'failed'):
-            if e1_state[0] != e1_state[1]:
-                if e1_state[0] != '':
-                    print("Node 1 {} completed".format(e1_state[0]))
-                print("Node 1 deployment state is: {}".format(e1_state[1]))
-                e1_state[0] = e1_state[1]
-
-            if e2_state[0] != e2_state[1]:
-                if e2_state[0] != '':
-                    print("Node 2 {} completed".format(e2_state[0]))
-                print("Node 2 deployment state is: {}".format(e2_state[1]))
-                e2_state[0] = e2_state[1]
-
-            t_edge1_state = getEdgeStatus(t_edge1['id'],auth_nsx)
-            t_edge2_state = getEdgeStatus(t_edge2['id'],auth_nsx)
-            e1_state[1] = t_edge1_state['node_deployment_state']['state']
-            e2_state[1] = t_edge2_state['node_deployment_state']['state']
-            
-            t = time.time()
-            idx = 0
-            if e1_state[0] != "NODE_READY" and e2_state[0] != "NODE_READY":
-                while (time.time() < t + 15):
-                    print("                 ",end='\r')
-                    print(animation[idx % len(animation)], end='\r')
-                    idx+=1
-                    time.sleep(1)
-
-        et = time.time()
-        rt = et - bt
-        print('{0:02.0f}:{1:02.0f}'.format(*divmod(rt, 60)))
-        print("Took {} to deploy these VMs".format(rt))
-
-        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        print(t_edge1_state['state'])
-        print(t_edge2_state['state'])
-        print('**********************************************************')
-        print("Tenant - Edge Cluster Configuration")
-        print('**********************************************************')
-        t_edcl = buildEdgeCluster(tc, t_edge1['id'], t_edge2['id'],'1')
-        mp(t_edcl)
+        t_edge1 = buildEdge(tc, '', edge1_ip[0][0].split('/')[0], edge1_ip[0][3], '1')
+        mp(t_edge1)
         print("----------------------")
-        print(json.dumps(t_edcl))
-        t_edcl = confEdgeCluster(man, json.dumps(t_edcl), auth=auth_nsx, objectId=None)
+        print(json.dumps(t_edge1))
+        
+        if run:
+            t_edge1 = confTransportNode(man, json.dumps(t_edge1), auth='Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ==', objectId=None)
+        data.update({'edge1':t_edge1})
         
         print('**********************************************************')
-        print("Tenant - Get Edge Cluster Path")
+        print("Tenant -  Edge 2 Configuration")
         print('**********************************************************')
-        t_edcl_path = getEdgeClusterPath(man,auth=auth_nsx,objectId=t_edcl['id'])
-        mp(t_edcl_path)
+        t_edge2 = buildEdge(tc, '', edge2_ip[0][0].split('/')[0], edge2_ip[0][3], '2')
+        mp(t_edge2)
         print("----------------------")
-        print(json.dumps(t_edcl_path))
-        t_edcl.update({'edcl_path':t_edcl_path['path']})
-        data.update({'edcl':t_edcl})
+        print(json.dumps(t_edge2))
+        if run:
+            t_edge2 = confTransportNode(man, json.dumps(t_edge2), auth='Basic YWRtaW46SVRhYVN3aW5zISFTQUlDMTgxMQ==', objectId=None)
+        data.update({'edge2':t_edge2})
+        if run:
+            print('**********************************************************')
+            print("Tenant Edge Deploying, this may take a while")
+            print('**********************************************************')
+            t_edge1_state = getEdgeStatus(t_edge1['id'],auth_nsx)
+            t_edge2_state = getEdgeStatus(t_edge2['id'],auth_nsx)
+            e1_state = ["",t_edge1_state['node_deployment_state']['state']]
+            e2_state = ["",t_edge2_state['node_deployment_state']['state']]
+            bt = time.time()
+
+            while (t_edge1_state['state'] != 'success' or t_edge1_state['state'] == 'pending' or t_edge1_state['state'] == 'failed') \
+                    or (t_edge2_state['state'] != 'success' or t_edge2_state['state'] == 'pending' or t_edge2_state['state'] == 'failed'):
+                if e1_state[0] != e1_state[1]:
+                    if e1_state[0] != '':
+                        print("Node 1 {} completed".format(e1_state[0]))
+                    print("Node 1 deployment state is: {}".format(e1_state[1]))
+                    e1_state[0] = e1_state[1]
+
+                if e2_state[0] != e2_state[1]:
+                    if e2_state[0] != '':
+                        print("Node 2 {} completed".format(e2_state[0]))
+                    print("Node 2 deployment state is: {}".format(e2_state[1]))
+                    e2_state[0] = e2_state[1]
+
+                t_edge1_state = getEdgeStatus(t_edge1['id'],auth_nsx)
+                t_edge2_state = getEdgeStatus(t_edge2['id'],auth_nsx)
+                e1_state[1] = t_edge1_state['node_deployment_state']['state']
+                e2_state[1] = t_edge2_state['node_deployment_state']['state']
+                
+                t = time.time()
+                idx = 0
+                if e1_state[0] != "NODE_READY" and e2_state[0] != "NODE_READY":
+                    while (time.time() < t + 15):
+                        print("                 ",end='\r')
+                        print(animation[idx % len(animation)], end='\r')
+                        idx+=1
+                        time.sleep(1)
+
+            et = time.time()
+            rt = et - bt
+            print('{0:02.0f}:{1:02.0f}'.format(*divmod(rt, 60)))
+            print("Took {} to deploy these VMs".format(rt))
+
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            print(t_edge1_state['state'])
+            print(t_edge2_state['state'])
+            print('**********************************************************')
+            print("Tenant - Edge Cluster Configuration")
+            print('**********************************************************')
+            t_edcl = buildEdgeCluster(tc, t_edge1['id'], t_edge2['id'],'1')
+            mp(t_edcl)
+            print("----------------------")
+            print(json.dumps(t_edcl))
+            t_edcl = confEdgeCluster(man, json.dumps(t_edcl), auth=auth_nsx, objectId=None)
+            
+            print('**********************************************************')
+            print("Tenant - Get Edge Cluster Path")
+            print('**********************************************************')
+            t_edcl_path = getEdgeClusterPath(man,auth=auth_nsx,objectId=t_edcl['id'])
+            mp(t_edcl_path)
+            print("----------------------")
+            print(json.dumps(t_edcl_path))
+            t_edcl.update({'edcl_path':t_edcl_path['path']})
+            data.update({'edcl':t_edcl})
     
     if (native_mode):
         print('**********************************************************')
@@ -1493,15 +1543,15 @@ if __name__ == "__main__":
         print('**********************************************************')
         print("Production - NAT Configuration")
         print('**********************************************************')
-        t_nat_01 = buildNAT(tc,'',nat_ip[0][0].split('/')[0],'192.168.162.0/24','prod-out',t_t0_1['id'])
-        t_nat_02 = buildNAT(tc,'',nat_ip[0][0].split('/')[0],'10.1.3.2','prod-dns-out',t_t0_1['id'])
+        t_nat_01 = buildNAT(tc,'',nat_ip1[0][0].split('/')[0],'192.168.162.0/24','prod-out',t_t0_1['id'])
+        t_nat_02 = buildNAT(tc,'',nat_ip1[0][0].split('/')[0],'10.1.3.2','prod-dns-out',t_t0_1['id'])
         mp(t_nat_01)
         print("+++++++")
         mp(t_nat_02)
         print("----------------------")
         print(json.dumps(t_nat_01))
         print(json.dumps(t_nat_02))
-        db.updAddresses(tc, nat_ip[0][0], 'out-nat')
+        db.updAddresses(tc, nat_ip1[0][0], 'out-nat')
         t_nat_01 = confNATRules(man, auth_nsx, json.dumps(t_nat_01), objectId=t_t0_1['id'], natRuleId=t_nat_01['id'])
         t_nat_02 = confNATRules(man, auth_nsx, json.dumps(t_nat_02), objectId=t_t0_1['id'], natRuleId=t_nat_02['id'])
         print(' -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*- ')
@@ -1555,15 +1605,17 @@ if __name__ == "__main__":
         print('**********************************************************')
         print("Development - NAT Configuration")
         print('**********************************************************')
-        t_dev_nat_01 = buildNAT(tc, '', nat_ip[3][0].split('/')[0], '192.168.163.0/24', 'dev-out', t_t0_1['id'])
-        t_dev_nat_02 = buildNAT(tc, '', nat_ip[3][0].split('/')[0], '10.1.4.2', 'dev-dns-out', t_t0_1['id'])
-        mp(t_nat_01)
+        # t_dev_nat_01 = buildNAT(tc, '', nat_ip[3][0].split('/')[0], '192.168.163.0/24', 'dev-out', t_t0_1['id'])
+        # t_dev_nat_02 = buildNAT(tc, '', nat_ip[3][0].split('/')[0], '10.1.4.2', 'dev-dns-out', t_t0_1['id'])
+        t_dev_nat_01 = buildNAT(tc, '', nat_ip2[0][0].split('/')[0], '192.168.163.0/24', 'dev-out', t_t0_1['id'])
+        t_dev_nat_02 = buildNAT(tc, '', nat_ip2[0][0].split('/')[0], '10.1.4.2', 'dev-dns-out', t_t0_1['id'])
+        mp(t_dev_nat_01)
         print("+++++++")
         mp(t_dev_nat_02)
         print("----------------------")
         print(json.dumps(t_dev_nat_01))
         print(json.dumps(t_dev_nat_02))
-        db.updAddresses(tc, nat_ip[3][0], 'dev-out-nat')
+        db.updAddresses(tc, nat_ip2[0][0], 'dev-out-nat')
         t_dev_nat_01 = confNATRules(man, auth_nsx, json.dumps(t_dev_nat_01), objectId=t_t0_1['id'], natRuleId=t_dev_nat_01['id'])
         t_dev_nat_02 = confNATRules(man, auth_nsx, json.dumps(t_dev_nat_02), objectId=t_t0_1['id'], natRuleId=t_dev_nat_02['id'])
         print(' -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*-  -*- ')
@@ -1580,7 +1632,8 @@ if __name__ == "__main__":
     print("**********************************************")
     print("Write TF variables data to File")
     print("**********************************************")
-    f = open(sys.path[0]"variables.tf", "w")
+    # f = open(sys.path[0]+"variables.tf", "w")
+    f = open("./variables.tf", "w")
     f.write(btf(data))
     f.close()
 

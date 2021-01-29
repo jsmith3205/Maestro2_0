@@ -1,3 +1,5 @@
+
+
 provider "nsxt" {
   host                  = var.nsx_manager
   username              = var.username
@@ -32,10 +34,40 @@ data "nsxt_policy_transport_zone" "vlan_tz" {
 }
 
 # used for testing now, but will need to be updated for Tenant specific deployments
-data "nsxt_policy_tier0_gateway" "t0_gateway" {
-  display_name = "okr01-c01-jks02-t0"
+data "nsxt_policy_tier0_gateway" "pro_t0_gateway" {
+  display_name = "okr01-c01-prov01"
 }
 
+# # Create Provider BGP Configurations - 1
+# resource "nsxt_policy_bgp_neighbor" "provider01" {
+#   display_name          = var.bgp_neighbor[0].name
+#   description           = var.bgp_neighbor[0].description
+#   bgp_path              = nsxt_policy_tier0_gateway.t_t0.bgp_config.0.path
+#   allow_as_in           = var.bgp_neighbor[0].allow_as_in
+#   graceful_restart_mode = var.bgp_neighbor[0].gr_mode
+#   hold_down_time        = var.bgp_neighbor[0].hd_time
+#   keep_alive_time       = var.bgp_neighbor[0].ka_time
+#   neighbor_address      = var.bgp_neighbor[0].n_addr
+#   password              = ""
+#   remote_as_num         = var.bgp_neighbor[0].rem_as
+#   source_addresses      = data.nsxt_policy_tier0_gateway_interface.p_t0_int1.ip_addresses
+# }
+# data.nsxt_policy_edge_cluster.edge_cluster.path
+
+# # Create Provider BGP Configurations - 2
+# resource "nsxt_policy_bgp_neighbor" "provider02" {
+#   display_name          = var.bgp_neighbor[1].name
+#   description           = var.bgp_neighbor[1].description
+#   bgp_path              = nsxt_policy_tier0_gateway.t_t0.bgp_config.0.path
+#   allow_as_in           = var.bgp_neighbor[1].allow_as_in
+#   graceful_restart_mode = var.bgp_neighbor[1].gr_mode
+#   hold_down_time        = var.bgp_neighbor[1].hd_time
+#   keep_alive_time       = var.bgp_neighbor[1].ka_time
+#   neighbor_address      = var.bgp_neighbor[1].n_addr
+#   password              = ""
+#   remote_as_num         = var.bgp_neighbor[1].rem_as
+#   source_addresses      = nsxt_policy_tier0_gateway_interface.t_t0_int2.ip_addresses
+# }
 
 # Create Tenant DHCP servers for Segments
 resource "nsxt_policy_dhcp_server" "t_dhcp" {
@@ -164,100 +196,48 @@ resource "nsxt_policy_segment" "dev" {
   }
 }
 
+resource "nsxt_policy_bgp_neighbor" "tenant01" {
+  display_name          = var.bgp_neighbor[2].name
+  description           = var.bgp_neighbor[2].description
+  bgp_path              = nsxt_policy_tier0_gateway.t_t0.bgp_config.0.path
+  allow_as_in           = var.bgp_neighbor[2].allow_as_in
+  graceful_restart_mode = var.bgp_neighbor[2].gr_mode
+  hold_down_time        = var.bgp_neighbor[2].hd_time
+  keep_alive_time       = var.bgp_neighbor[2].ka_time
+  neighbor_address      = var.bgp_neighbor[2].n_addr
+  password              = ""
+  remote_as_num         = var.bgp_neighbor[2].rem_as
+  source_addresses      = nsxt_policy_tier0_gateway_interface.t_t0_int1.ip_addresses
+}
 
+resource "nsxt_policy_bgp_neighbor" "tenant02" {
+  display_name          = var.bgp_neighbor[3].name
+  description           = var.bgp_neighbor[3].description
+  bgp_path              = nsxt_policy_tier0_gateway.t_t0.bgp_config.0.path
+  allow_as_in           = var.bgp_neighbor[3].allow_as_in
+  graceful_restart_mode = var.bgp_neighbor[3].gr_mode
+  hold_down_time        = var.bgp_neighbor[3].hd_time
+  keep_alive_time       = var.bgp_neighbor[3].ka_time
+  neighbor_address      = var.bgp_neighbor[3].n_addr
+  password              = ""
+  remote_as_num         = var.bgp_neighbor[3].rem_as
+  source_addresses      = nsxt_policy_tier0_gateway_interface.t_t0_int2.ip_addresses
+}
 
+resource "nsxt_policy_dns_forwarder_zone" "test" {
+  display_name     = var.dns_zone[0].name
+  description      = var.dns_zone[0].description
+  # dns_domain_names = ["broker.saic.com"]
+  upstream_servers = var.dns_zone[0].servers
+}
 
+resource "nsxt_policy_gateway_dns_forwarder" "test-dns-forwarder" {
+  display_name                = var.dns_forwarder[0].name
+  description                 = var.dns_forwarder[0].description
+  gateway_path                = nsxt_policy_tier0_gateway.t_t0.path
+  listener_ip                 = var.dns_forwarder[0].listener_ip
+  enabled                     = var.dns_forwarder[0].enabled
+  log_level                   = var.dns_forwarder[0].log_level
+  default_forwarder_zone_path = nsxt_policy_dns_forwarder_zone.test.path
+}
 
-
-# resource "nsxt_policy_segment" "web" {
-#   display_name        = "web-tier"
-#   description         = "Terraform provisioned Web Segment"
-#   connectivity_path   = nsxt_policy_tier1_gateway.t1_gateway.path
-#   transport_zone_path = data.nsxt_policy_transport_zone.overlay_tz.path
-
-#   subnet {
-#     cidr        = "12.12.1.1/24"
-#     dhcp_ranges = ["12.12.1.100-12.12.1.160"]
-
-#     dhcp_v4_config {
-#       server_address = "12.12.1.2/24"
-#       lease_time     = 36000
-
-#       dhcp_option_121 {
-#         network  = "6.6.6.0/24"
-#         next_hop = "1.1.1.21"
-#       }
-#     }
-#   }
-
-#   tag {
-#     scope = var.nsx_tag_scope
-#     tag   = var.nsx_tag
-#   }
-#   tag {
-#     scope = "tier"
-#     tag   = "web"
-#   }
-# }
-
-# resource "nsxt_policy_segment" "app" {
-#   display_name        = "app-tier"
-#   description         = "Terraform provisioned App Segment"
-#   connectivity_path   = nsxt_policy_tier1_gateway.t1_gateway.path
-#   transport_zone_path = data.nsxt_policy_transport_zone.overlay_tz.path
-
-#   subnet {
-#     cidr        = "12.12.2.1/24"
-#     dhcp_ranges = ["12.12.2.100-12.12.2.160"]
-
-#     dhcp_v4_config {
-#       server_address = "12.12.2.2/24"
-#       lease_time     = 36000
-
-#       dhcp_option_121 {
-#         network  = "6.6.6.0/24"
-#         next_hop = "1.1.1.21"
-#       }
-#     }
-#   }
-
-#   tag {
-#     scope = var.nsx_tag_scope
-#     tag   = var.nsx_tag
-#   }
-#   tag {
-#     scope = "tier"
-#     tag   = "app"
-#   }
-# }
-
-# resource "nsxt_policy_segment" "db" {
-#   display_name        = "db-tier"
-#   description         = "Terraform provisioned DB Segment"
-#   connectivity_path   = nsxt_policy_tier1_gateway.t1_gateway.path
-#   transport_zone_path = data.nsxt_policy_transport_zone.overlay_tz.path
-
-#   subnet {
-#     cidr        = "12.12.3.1/24"
-#     dhcp_ranges = ["12.12.3.100-12.12.3.160"]
-
-#     dhcp_v4_config {
-#       server_address = "12.12.3.2/24"
-#       lease_time     = 36000
-
-#       dhcp_option_121 {
-#         network  = "6.6.6.0/24"
-#         next_hop = "1.1.1.21"
-#       }
-#     }
-#   }
-
-#   tag {
-#     scope = var.nsx_tag_scope
-#     tag   = var.nsx_tag
-#   }
-#   tag {
-#     scope = "tier"
-#     tag   = "db"
-#   }
-#}
